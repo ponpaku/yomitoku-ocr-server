@@ -334,6 +334,42 @@
 				stroke-width: 1.5;
 			}
 
+			.progress-track {
+				position: relative;
+				width: 100%;
+				height: 8px;
+				background: var(--panel-inner);
+				border: 1px solid var(--border);
+				border-radius: 999px;
+				overflow: hidden;
+				display: none;
+			}
+
+			.progress-track.visible {
+				display: block;
+			}
+
+			.progress-bar {
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				width: 0%;
+				background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+				transition: width 0.2s ease;
+			}
+
+			.progress-bar.error {
+				background: #ef4444;
+			}
+
+			.progress-text {
+				display: block;
+				margin-top: 4px;
+				font-size: 11px;
+				color: var(--text-secondary);
+			}
+
 			/* ===== MODAL ===== */
 			.modal-backdrop {
 				position: fixed;
@@ -996,6 +1032,12 @@
 				<div class="panel results-panel">
 					<div class="panel-header">
 						<h2>ページ別</h2>
+						<div class="panel-actions" style="flex: 1; justify-content: flex-end; gap: 12px;">
+							<div id="progressTrack" class="progress-track" style="max-width: 200px;">
+								<div id="progressBar" class="progress-bar"></div>
+							</div>
+							<span id="progressText" class="progress-text"></span>
+						</div>
 					</div>
 					<div class="tabs" id="pageTabs"></div>
 					<div id="pageEmpty" class="empty-state" style="flex: 1">
@@ -1094,8 +1136,13 @@
 			const advancedModal = document.getElementById("advancedModal");
 			const advancedOpen = document.getElementById("advancedOpen");
 			const advancedClose = document.getElementById("advancedClose");
+			const progressTrack = document.getElementById("progressTrack");
+			const progressBar = document.getElementById("progressBar");
+			const progressText = document.getElementById("progressText");
 
 			let currentPayload = null;
+			let progressTimer = null;
+			let progressValue = 0;
 
 			// Theme
 			function initTheme() {
@@ -1144,6 +1191,41 @@
 				runButton.disabled = busy;
 				runButton.textContent = busy ? "実行中..." : "OCR 実行";
 				if (msg) logEl.textContent = msg;
+			}
+
+			function setProgress(value, label, isError = false) {
+				progressValue = Math.max(0, Math.min(100, value));
+				progressTrack.classList.add("visible");
+				progressBar.style.width = `${progressValue}%`;
+				progressBar.classList.toggle("error", isError);
+				if (label !== undefined) progressText.textContent = label;
+			}
+
+			function startProgress(label = "処理中...") {
+				clearInterval(progressTimer);
+				setProgress(10, label);
+				progressTimer = setInterval(() => {
+					if (progressValue < 90) setProgress(progressValue + 2);
+				}, 400);
+			}
+
+			function finishProgress(label = "完了") {
+				clearInterval(progressTimer);
+				setProgress(100, label);
+				setTimeout(() => {
+					progressTrack.classList.remove("visible");
+					setProgress(0, "");
+				}, 600);
+			}
+
+			function failProgress(label = "エラー") {
+				clearInterval(progressTimer);
+				setProgress(100, label, true);
+				setTimeout(() => {
+					progressTrack.classList.remove("visible");
+					setProgress(0, "");
+					progressBar.classList.remove("error");
+				}, 800);
 			}
 
 			function resetResults(msg = "ファイルをアップロードして解析を開始") {
@@ -1456,6 +1538,7 @@
 				fd.append("dpi", dpiInput?.value || 220);
 
 				setBusy(true, "処理中...");
+				startProgress("処理中...");
 				resetResults("処理中です。少しお待ちください。");
 
 				try {
@@ -1466,9 +1549,11 @@
 						);
 					renderResults(await res.json());
 					setBusy(false, "完了");
+					finishProgress("完了");
 				} catch (err) {
 					resetResults(`エラー: ${err.message}`);
 					setBusy(false, "エラー");
+					failProgress("エラー");
 				}
 			});
 
