@@ -232,6 +232,61 @@
 				accent-color: var(--accent);
 			}
 
+			.advanced-toggle {
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				padding: 8px 10px;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 12px;
+				color: var(--text-secondary);
+				transition: border-color 0.15s, background 0.15s;
+			}
+
+			.advanced-toggle:hover {
+				border-color: var(--accent);
+				background: var(--accent-light);
+			}
+
+			.advanced-content {
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				padding: 10px;
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+				gap: 10px;
+			}
+
+			.advanced-content label {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				font-size: 12px;
+				color: var(--text-secondary);
+			}
+
+			.advanced-content input,
+			.advanced-content select {
+				width: 100%;
+				padding: 8px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel);
+				color: var(--text);
+				font-size: 13px;
+			}
+
+			.advanced-row {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+				gap: 10px;
+				align-items: center;
+			}
+
 			.btn {
 				padding: 8px 20px;
 				background: var(--accent);
@@ -277,6 +332,76 @@
 				stroke: var(--text-secondary);
 				fill: none;
 				stroke-width: 1.5;
+			}
+
+			/* ===== MODAL ===== */
+			.modal-backdrop {
+				position: fixed;
+				inset: 0;
+				background: rgba(0, 0, 0, 0.45);
+				display: none;
+				align-items: center;
+				justify-content: center;
+				z-index: 150;
+				padding: 16px;
+			}
+
+			.modal-backdrop.open {
+				display: flex;
+			}
+
+			.modal {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+				padding: 18px;
+				max-width: 520px;
+				width: 100%;
+			}
+
+			.modal-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 12px;
+			}
+
+			.modal-header h3 {
+				font-size: 14px;
+				font-weight: 700;
+				margin: 0;
+			}
+
+			.modal-close {
+				background: none;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				padding: 4px 8px;
+				cursor: pointer;
+			}
+
+			.modal-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+				gap: 10px;
+			}
+
+			.modal-grid label {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				font-size: 12px;
+				color: var(--text-secondary);
+			}
+
+			.modal-grid input,
+			.modal-grid select {
+				padding: 8px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				color: var(--text);
 			}
 
 			/* ===== GRID ===== */
@@ -801,6 +926,9 @@
 								>段落内改行削除</span
 							></label
 						>
+						<button type="button" class="advanced-toggle" id="advancedOpen">
+							詳細設定
+						</button>
 					</div>
 					<button type="submit" class="btn" id="runButton">OCR 実行</button>
 					<button
@@ -891,9 +1019,50 @@
 			</div>
 		</div>
 
+		<div class="modal-backdrop" id="advancedModal">
+			<div class="modal">
+				<div class="modal-header">
+					<h3>詳細設定</h3>
+					<button type="button" class="modal-close" id="advancedClose">
+						閉じる
+					</button>
+				</div>
+				<div class="modal-grid">
+					<label>
+						<span>デバイス</span>
+						<select id="deviceSelect">
+							<option value="auto">Auto (GPU優先)</option>
+							<option value="cuda">GPU (CUDA)</option>
+							<option value="cpu">CPU</option>
+						</select>
+					</label>
+					<label style="flex-direction: row; align-items: center; gap: 8px;">
+						<input type="checkbox" id="useOnnx" />
+						<span>ONNX Runtime</span>
+					</label>
+					<label>
+						<span>並列ワーカー</span>
+						<input type="number" id="parallelism" min="1" max="16" value="2" />
+					</label>
+					<label>
+						<span>Torch スレッド</span>
+						<input type="number" id="torchThreads" min="1" max="64" value="8" />
+					</label>
+					<label>
+						<span>PDF DPI</span>
+						<input type="number" id="dpi" min="150" max="600" value="220" />
+					</label>
+				</div>
+			</div>
+		</div>
+
 		<div id="lightbox" class="lightbox">
 			<img id="lightboxImg" alt="Preview" />
-			<div id="lightboxHtml" class="lightbox-content" style="display: none"></div>
+			<div
+				id="lightboxHtml"
+				class="lightbox-content"
+				style="display: none"
+			></div>
 		</div>
 
 		<script>
@@ -911,12 +1080,20 @@
 			const pageEmpty = document.getElementById("pageEmpty");
 			const collapseBreaksInput = document.getElementById("collapseBreaks");
 			const tableTagsInput = document.getElementById("tableTags");
+			const deviceSelect = document.getElementById("deviceSelect");
+			const useOnnxInput = document.getElementById("useOnnx");
+			const parallelismInput = document.getElementById("parallelism");
+			const torchThreadsInput = document.getElementById("torchThreads");
+			const dpiInput = document.getElementById("dpi");
 			const lightbox = document.getElementById("lightbox");
 			const lightboxImg = document.getElementById("lightboxImg");
 			const lightboxHtml = document.getElementById("lightboxHtml");
 			const dropzone = document.getElementById("dropzone");
 			const fileInput = document.getElementById("fileInput");
 			const themeToggle = document.getElementById("themeToggle");
+			const advancedModal = document.getElementById("advancedModal");
+			const advancedOpen = document.getElementById("advancedOpen");
+			const advancedClose = document.getElementById("advancedClose");
 
 			let currentPayload = null;
 
@@ -1004,8 +1181,7 @@
 				const pre = document.getElementById(`text-page-${page.page}`);
 				if (pre)
 					pre.textContent =
-						computePageText(page, tableTagsInput.checked) ||
-						"テキスト抽出なし";
+						computePageText(page, tableTagsInput.checked) || "テキスト抽出なし";
 			}
 
 			function recomputeAllText() {
@@ -1248,6 +1424,21 @@
 				recomputeAllText();
 			});
 
+			// Advanced modal
+			function openAdvanced() {
+				advancedModal.classList.add("open");
+			}
+
+			function closeAdvanced() {
+				advancedModal.classList.remove("open");
+			}
+
+			advancedOpen.addEventListener("click", openAdvanced);
+			advancedClose.addEventListener("click", closeAdvanced);
+			advancedModal.addEventListener("click", (e) => {
+				if (e.target === advancedModal) closeAdvanced();
+			});
+
 			// Submit
 			form.addEventListener("submit", async (e) => {
 				e.preventDefault();
@@ -1256,13 +1447,13 @@
 
 				const fd = new FormData();
 				fd.append("file", fileInput.files[0]);
-				fd.append("device", "auto");
-				fd.append("use_onnx", false);
+				fd.append("device", deviceSelect?.value || "auto");
+				fd.append("use_onnx", useOnnxInput?.checked || false);
 				fd.append("visualize", document.getElementById("visualize").checked);
 				fd.append("collapse_line_breaks", collapseBreaksInput.checked);
-				fd.append("parallelism", 2);
-				fd.append("torch_threads", 8);
-				fd.append("dpi", 220);
+				fd.append("parallelism", parallelismInput?.value || 2);
+				fd.append("torch_threads", torchThreadsInput?.value || 8);
+				fd.append("dpi", dpiInput?.value || 220);
 
 				setBusy(true, "処理中...");
 				resetResults("処理中です。少しお待ちください。");
