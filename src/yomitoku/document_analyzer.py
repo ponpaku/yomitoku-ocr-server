@@ -298,6 +298,7 @@ class DocumentAnalyzer:
         ignore_meta=False,
         reading_order="auto",
         split_text_across_cells=False,
+        max_workers=2,
     ):
         default_configs = {
             "ocr": {
@@ -345,8 +346,14 @@ class DocumentAnalyzer:
 
         self.ignore_meta = ignore_meta
         self.split_text_across_cells = split_text_across_cells
+        try:
+            workers = int(max_workers)
+        except (TypeError, ValueError):
+            workers = 2
 
-    def aggregate(self, ocr_res, layout_res):
+        self.max_workers = max(1, workers)
+
+    def aggregate(self, ocr_res, layout_res, img):
         paragraphs = []
         check_list = [False] * len(ocr_res.words)
         for table in layout_res.tables:
@@ -435,7 +442,7 @@ class DocumentAnalyzer:
         else:
             reading_order = self.reading_order
 
-        prediction_reading_order(elements, reading_order, self.img)
+        prediction_reading_order(elements, reading_order, img)
 
         for i, element in enumerate(elements):
             element.order += len(headers)
@@ -457,7 +464,7 @@ class DocumentAnalyzer:
         return outputs
 
     async def run(self, img):
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             loop = asyncio.get_running_loop()
             tasks = [
                 # loop.run_in_executor(executor, self.ocr, img),
@@ -484,13 +491,12 @@ class DocumentAnalyzer:
 
             outputs = {"words": ocr_aggregate(results_det, results_rec)}
             results_ocr = OCRSchema(**outputs)
-            outputs = self.aggregate(results_ocr, results_layout)
+            outputs = self.aggregate(results_ocr, results_layout, img)
 
         results = DocumentAnalyzerSchema(**outputs)
         return results, ocr, layout
 
     def __call__(self, img):
-        self.img = img
         results, ocr, layout = asyncio.run(self.run(img))
 
         if self.visualize:

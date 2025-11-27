@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>YomiToku OCR Control Room</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--bg: #f8fafc;
+				--panel: #ffffff;
+				--panel-inner: #f8fafc;
+				--muted: #64748b;
+				--accent: #0369a1;
+				--accent-hover: #0284c7;
+				--accent-light: #e0f2fe;
+				--text: #1e293b;
+				--text-secondary: #475569;
+				--border: #e2e8f0;
+				--success: #059669;
+				--success-bg: #ecfdf5;
+				--warning: #d97706;
+				--warning-bg: #fffbeb;
+				--pre-bg: #ffffff;
+				--shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+				--radius: 8px;
+				--radius-lg: 12px;
+			}
+
+			[data-theme="dark"] {
+				--bg: #0f172a;
+				--panel: #1e293b;
+				--panel-inner: #0f172a;
+				--muted: #94a3b8;
+				--accent: #38bdf8;
+				--accent-hover: #7dd3fc;
+				--accent-light: rgba(56, 189, 248, 0.15);
+				--text: #f1f5f9;
+				--text-secondary: #cbd5e1;
+				--border: #334155;
+				--success: #34d399;
+				--success-bg: rgba(52, 211, 153, 0.15);
+				--warning: #fbbf24;
+				--warning-bg: rgba(251, 191, 36, 0.15);
+				--pre-bg: #0f172a;
+			}
+
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			html,
+			body {
+				height: 100%;
+				overflow: hidden;
+			}
+
+			body {
+				background: var(--bg);
+				font-family: "Noto Sans JP", system-ui, sans-serif;
+				color: var(--text);
+				font-size: 14px;
+				line-height: 1.5;
+			}
+
+			/* ===== LAYOUT ===== */
+			.shell {
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				padding: 12px 16px 16px;
+				gap: 12px;
+			}
+
+			.hero {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				flex-wrap: wrap;
+				flex-shrink: 0;
+			}
+
+			.hero-left {
+				display: flex;
+				align-items: center;
+				gap: 16px;
+				flex-wrap: wrap;
+				min-width: 0;
+			}
+
+			.brand {
+				flex-shrink: 0;
+			}
+
+			.eyebrow {
+				font-size: 10px;
+				font-weight: 600;
+				color: var(--accent);
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				margin-bottom: 2px;
+			}
+
+			h1 {
+				font-size: 18px;
+				font-weight: 600;
+				color: var(--text);
+			}
+
+			.status-row {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+			}
+
+			.chip {
+				padding: 3px 8px;
+				border-radius: 999px;
+				background: var(--panel);
+				border: 1px solid var(--border);
+				font-size: 11px;
+				font-weight: 500;
+				color: var(--text-secondary);
+				font-family: "IBM Plex Mono", monospace;
+				white-space: nowrap;
+			}
+
+			.chip.positive {
+				background: var(--success-bg);
+				border-color: var(--success);
+				color: var(--success);
+			}
+
+			.chip.warning {
+				background: var(--warning-bg);
+				border-color: var(--warning);
+				color: var(--warning);
+			}
+
+			/* ===== ACTION FORM ===== */
+			.action-form {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				flex-wrap: wrap;
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				padding: 10px 14px;
+				box-shadow: var(--shadow);
+			}
+
+			.dropzone {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 8px 14px;
+				border: 1px dashed var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				cursor: pointer;
+				transition: border-color 0.15s, background 0.15s;
+			}
+
+			.dropzone:hover,
+			.dropzone.dragover {
+				border-color: var(--accent);
+				background: var(--accent-light);
+			}
+
+			.dropzone-icon {
+				width: 18px;
+				height: 18px;
+				stroke: var(--muted);
+				stroke-width: 1.5;
+				flex-shrink: 0;
+			}
+
+			.dropzone:hover .dropzone-icon {
+				stroke: var(--accent);
+			}
+
+			.dropzone-text {
+				font-size: 13px;
+				color: var(--text-secondary);
+			}
+
+			.log {
+				font-size: 11px;
+				font-family: "IBM Plex Mono", monospace;
+				color: var(--accent);
+				background: var(--accent-light);
+				padding: 4px 8px;
+				border-radius: 4px;
+				max-width: 160px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.log:empty {
+				display: none;
+			}
+
+			.inline-controls {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+			}
+
+			.inline-controls label {
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				font-size: 12px;
+				color: var(--text-secondary);
+				cursor: pointer;
+				white-space: nowrap;
+			}
+
+			.inline-controls input[type="checkbox"] {
+				width: 14px;
+				height: 14px;
+				accent-color: var(--accent);
+			}
+
+			.btn {
+				padding: 8px 20px;
+				background: var(--accent);
+				color: #fff;
+				border: none;
+				border-radius: var(--radius);
+				font-size: 13px;
+				font-weight: 600;
+				cursor: pointer;
+				transition: background 0.15s;
+				white-space: nowrap;
+			}
+
+			.btn:hover {
+				background: var(--accent-hover);
+			}
+			.btn:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+
+			.theme-toggle {
+				width: 36px;
+				height: 36px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: background 0.15s;
+				flex-shrink: 0;
+			}
+
+			.theme-toggle:hover {
+				background: var(--accent-light);
+			}
+
+			.theme-toggle svg {
+				width: 18px;
+				height: 18px;
+				stroke: var(--text-secondary);
+				fill: none;
+				stroke-width: 1.5;
+			}
+
+			/* ===== GRID ===== */
+			.grid {
+				display: grid;
+				grid-template-columns: 1fr 1.3fr;
+				gap: 12px;
+				flex: 1;
+				min-height: 0;
+			}
+
+			/* ===== PANELS ===== */
+			.panel {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				box-shadow: var(--shadow);
+				display: flex;
+				flex-direction: column;
+				min-height: 0;
+				overflow: hidden;
+			}
+
+			.panel-header {
+				padding: 12px 14px 10px;
+				border-bottom: 1px solid var(--border);
+				flex-shrink: 0;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			.panel-header h2 {
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--text);
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.panel-header h2::before {
+				content: "";
+				width: 3px;
+				height: 12px;
+				background: var(--accent);
+				border-radius: 2px;
+			}
+
+			.panel-actions {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.panel-actions label {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 12px;
+				color: var(--text-secondary);
+				cursor: pointer;
+			}
+
+			.panel-body {
+				flex: 1;
+				min-height: 0;
+				display: flex;
+				flex-direction: column;
+			}
+
+			/* All Pages Panel */
+			.all-panel .panel-body {
+				padding: 12px 14px;
+			}
+
+			.all-panel .empty-state {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				color: var(--muted);
+				gap: 8px;
+			}
+
+			.empty-icon {
+				width: 32px;
+				height: 32px;
+				stroke: var(--border);
+				stroke-width: 1.5;
+			}
+
+			.empty-state span {
+				font-size: 12px;
+			}
+
+			#allTextCard {
+				flex: 1;
+				display: none;
+				flex-direction: column;
+				min-height: 0;
+			}
+
+			#allTextCard.visible {
+				display: flex;
+			}
+
+			#allTextCard .badge-row {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				margin-bottom: 10px;
+				flex-shrink: 0;
+			}
+
+			#allTextCard .card-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 8px;
+				flex-shrink: 0;
+			}
+
+			#allTextCard h3 {
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--text);
+			}
+
+			#allTextCard .hint {
+				font-size: 11px;
+				color: var(--muted);
+			}
+
+			#allTextCard pre {
+				flex: 1;
+				min-height: 0;
+				overflow: auto;
+				background: var(--pre-bg);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				padding: 12px;
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 12px;
+				line-height: 1.6;
+				color: var(--text);
+				white-space: pre-wrap;
+				margin: 0;
+			}
+
+			/* Results Panel (Tabs) */
+			.results-panel .tabs {
+				display: flex;
+				gap: 4px;
+				padding: 10px 14px;
+				border-bottom: 1px solid var(--border);
+				flex-shrink: 0;
+				flex-wrap: wrap;
+			}
+
+			.tab {
+				padding: 6px 12px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel-inner);
+				color: var(--text-secondary);
+				font-size: 12px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.15s;
+			}
+
+			.tab:hover {
+				border-color: var(--accent);
+				color: var(--accent);
+			}
+
+			.tab.active {
+				background: var(--accent);
+				border-color: var(--accent);
+				color: #fff;
+			}
+
+			.results-panel .tab-panels {
+				flex: 1;
+				min-height: 0;
+				overflow: auto;
+			}
+
+			.tab-panel {
+				display: none;
+				padding: 14px;
+			}
+
+			.tab-panel.active {
+				display: block;
+			}
+
+			.result-card {
+				background: var(--panel-inner);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				padding: 14px;
+			}
+
+			.result-card h3 {
+				font-size: 14px;
+				font-weight: 600;
+				margin-bottom: 10px;
+			}
+
+			.result-card .badge-row {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				margin-bottom: 12px;
+			}
+
+			.result-card pre {
+				background: var(--pre-bg);
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				padding: 12px;
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 12px;
+				line-height: 1.6;
+				color: var(--text);
+				white-space: pre-wrap;
+				max-height: 200px;
+				overflow: auto;
+				margin: 0;
+			}
+
+			.html-preview {
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel);
+				padding: 10px;
+				max-height: 320px;
+				overflow: auto;
+				font-size: 12px;
+				line-height: 1.6;
+				color: var(--text);
+			}
+
+			.preview-row {
+				display: flex;
+				gap: 12px;
+				flex-wrap: wrap;
+				margin-top: 12px;
+				align-items: stretch;
+			}
+
+			.preview-item {
+				flex: 1 1 320px;
+				min-width: 240px;
+				max-width: 420px;
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+			}
+
+			.preview-item img {
+				border-radius: var(--radius);
+				border: 1px solid var(--border);
+				width: 100%;
+				cursor: zoom-in;
+				transition: box-shadow 0.15s;
+				background: var(--panel-inner);
+			}
+
+			.preview-item img:hover {
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			}
+
+			.preview-label {
+				font-size: 12px;
+				color: var(--muted);
+			}
+
+			.chip-button {
+				border: 1px solid var(--border);
+				border-radius: 999px;
+				background: var(--panel);
+				color: var(--text-secondary);
+				font-size: 11px;
+				padding: 6px 10px;
+				cursor: pointer;
+				transition: border-color 0.15s, color 0.15s, background 0.15s;
+			}
+
+			.chip-button:hover {
+				border-color: var(--accent);
+				color: var(--accent);
+				background: var(--accent-light);
+			}
+
+			.block-section {
+				margin-top: 14px;
+				padding-top: 12px;
+				border-top: 1px solid var(--border);
+			}
+
+			.block-section-title {
+				font-size: 12px;
+				color: var(--muted);
+				margin-bottom: 8px;
+			}
+
+			.block-list {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+				gap: 6px;
+			}
+
+			.block-item {
+				display: flex;
+				gap: 8px;
+				padding: 8px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius);
+				background: var(--panel);
+				font-size: 11px;
+				cursor: pointer;
+				transition: border-color 0.15s;
+			}
+
+			.block-item:hover {
+				border-color: var(--accent);
+			}
+
+			.block-item input[type="checkbox"] {
+				width: 14px;
+				height: 14px;
+				accent-color: #ef4444;
+				flex-shrink: 0;
+			}
+
+			.block-meta {
+				color: var(--muted);
+				margin-top: 2px;
+				line-height: 1.4;
+			}
+
+			/* Lightbox */
+			.lightbox {
+				position: fixed;
+				inset: 0;
+				background: rgba(0, 0, 0, 0.85);
+				display: none;
+				align-items: center;
+				justify-content: center;
+				z-index: 100;
+				cursor: zoom-out;
+				padding: 20px;
+			}
+
+			.lightbox.open {
+				display: flex;
+			}
+
+			.lightbox img {
+				max-width: 90vw;
+				max-height: 90vh;
+				border-radius: var(--radius);
+				box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+			}
+
+			.lightbox-content {
+				max-width: 90vw;
+				max-height: 90vh;
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				padding: 16px;
+				overflow: auto;
+				color: var(--text);
+				cursor: auto;
+			}
+
+			/* ===== RESPONSIVE ===== */
+			@media (max-width: 900px) {
+				.grid {
+					grid-template-columns: 1fr;
+					grid-template-rows: 1fr 1fr;
+				}
+
+				.hero {
+					flex-direction: column;
+					align-items: stretch;
+				}
+
+				.hero-left {
+					justify-content: space-between;
+				}
+
+				.action-form {
+					justify-content: center;
+				}
+			}
+
+			@media (max-width: 600px) {
+				.shell {
+					padding: 10px;
+					gap: 10px;
+				}
+
+				h1 {
+					font-size: 16px;
+				}
+
+				.status-row {
+					display: none;
+				}
+
+				.action-form {
+					padding: 8px 10px;
+					gap: 8px;
+				}
+
+				.dropzone {
+					padding: 6px 10px;
+				}
+
+				.dropzone-text {
+					font-size: 12px;
+				}
+
+				.inline-controls label span {
+					display: none;
+				}
+
+				.btn {
+					padding: 8px 14px;
+					font-size: 12px;
+				}
+
+				.panel-header {
+					padding: 10px 12px 8px;
+				}
+				.panel-header h2 {
+					font-size: 12px;
+				}
+
+				.all-panel .panel-body {
+					padding: 10px 12px;
+				}
+
+				.results-panel .tabs {
+					padding: 8px 12px;
+				}
+				.tab-panel {
+					padding: 10px 12px;
+				}
+
+				.result-card {
+					padding: 10px;
+				}
+				.result-card h3 {
+					font-size: 13px;
+				}
+
+				.preview-row img {
+					width: 100%;
+				}
+
+				.block-list {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="shell">
+			<header class="hero">
+				<form id="controlForm" class="action-form">
+					<label for="fileInput" class="dropzone" id="dropzone">
+						<svg
+							class="dropzone-icon"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+						>
+							<path
+								d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+							<polyline
+								points="17,8 12,3 7,8"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+							<line
+								x1="12"
+								y1="3"
+								x2="12"
+								y2="15"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+						<span class="dropzone-text">ファイルを選択</span>
+						<input
+							id="fileInput"
+							type="file"
+							accept="image/*,.pdf"
+							required
+							hidden
+						/>
+					</label>
+					<div class="log" id="log"></div>
+					<div class="inline-controls">
+						<label
+							><input type="checkbox" id="visualize" checked /><span
+								>可視化</span
+							></label
+						>
+						<label
+							><input type="checkbox" id="collapseBreaks" /><span
+								>段落内改行削除</span
+							></label
+						>
+					</div>
+					<button type="submit" class="btn" id="runButton">OCR 実行</button>
+					<button
+						type="button"
+						class="theme-toggle"
+						id="themeToggle"
+						title="テーマ切替"
+					>
+						<svg class="sun-icon" viewBox="0 0 24 24">
+							<circle cx="12" cy="12" r="5" />
+							<path
+								d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+							/>
+						</svg>
+					</button>
+				</form>
+				<div class="hero-left">
+					<div class="brand">
+						<p class="eyebrow">YomiToku Control Room</p>
+						<h1>High-Precision OCR Server</h1>
+					</div>
+					<div class="status-row">
+						<span id="gpuStatus" class="chip">GPU: 確認中</span>
+						<span class="chip positive">LAN Ready</span>
+					</div>
+				</div>
+			</header>
+
+			<div class="grid">
+				<div class="panel all-panel">
+					<div class="panel-header">
+						<h2>All Pages</h2>
+						<div class="panel-actions">
+							<label
+								><input type="checkbox" id="tableTags" checked /><span
+									>テーブルセルタグ表示</span
+								></label
+							>
+						</div>
+					</div>
+					<div class="panel-body">
+						<div id="summaryEmpty" class="empty-state">
+							<svg
+								class="empty-icon"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+							>
+								<rect x="3" y="3" width="18" height="18" rx="2" />
+								<path d="M3 9h18M9 21V9" />
+							</svg>
+							<span>ファイルをアップロードして解析を開始</span>
+						</div>
+						<div id="allTextCard">
+							<div id="summary" class="badge-row"></div>
+							<div class="card-header">
+								<h3>結合テキスト</h3>
+								<span class="hint">除外設定はページ別で変更可</span>
+							</div>
+							<pre id="text-all"></pre>
+						</div>
+					</div>
+				</div>
+
+				<div class="panel results-panel">
+					<div class="panel-header">
+						<h2>ページ別</h2>
+					</div>
+					<div class="tabs" id="pageTabs"></div>
+					<div id="pageEmpty" class="empty-state" style="flex: 1">
+						<svg
+							class="empty-icon"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+						>
+							<path
+								d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+							/>
+							<polyline points="14,2 14,8 20,8" />
+							<line x1="16" y1="13" x2="8" y2="13" />
+							<line x1="16" y1="17" x2="8" y2="17" />
+						</svg>
+						<span>ファイルをアップロードして解析を開始</span>
+					</div>
+					<div class="tab-panels" id="pagePanels"></div>
+				</div>
+			</div>
+		</div>
+
+		<div id="lightbox" class="lightbox">
+			<img id="lightboxImg" alt="Preview" />
+			<div id="lightboxHtml" class="lightbox-content" style="display: none"></div>
+		</div>
+
+		<script>
+			// Elements
+			const form = document.getElementById("controlForm");
+			const logEl = document.getElementById("log");
+			const gpuStatus = document.getElementById("gpuStatus");
+			const runButton = document.getElementById("runButton");
+			const summaryEl = document.getElementById("summary");
+			const summaryEmpty = document.getElementById("summaryEmpty");
+			const allTextCard = document.getElementById("allTextCard");
+			const textAllEl = document.getElementById("text-all");
+			const pageTabsEl = document.getElementById("pageTabs");
+			const pagePanelsEl = document.getElementById("pagePanels");
+			const pageEmpty = document.getElementById("pageEmpty");
+			const collapseBreaksInput = document.getElementById("collapseBreaks");
+			const tableTagsInput = document.getElementById("tableTags");
+			const lightbox = document.getElementById("lightbox");
+			const lightboxImg = document.getElementById("lightboxImg");
+			const lightboxHtml = document.getElementById("lightboxHtml");
+			const dropzone = document.getElementById("dropzone");
+			const fileInput = document.getElementById("fileInput");
+			const themeToggle = document.getElementById("themeToggle");
+
+			let currentPayload = null;
+
+			// Theme
+			function initTheme() {
+				const saved = localStorage.getItem("theme");
+				if (
+					saved === "dark" ||
+					(!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)
+				) {
+					document.documentElement.setAttribute("data-theme", "dark");
+				}
+			}
+
+			function toggleTheme() {
+				const isDark =
+					document.documentElement.getAttribute("data-theme") === "dark";
+				if (isDark) {
+					document.documentElement.removeAttribute("data-theme");
+					localStorage.setItem("theme", "light");
+				} else {
+					document.documentElement.setAttribute("data-theme", "dark");
+					localStorage.setItem("theme", "dark");
+				}
+			}
+
+			themeToggle.addEventListener("click", toggleTheme);
+			initTheme();
+
+			// GPU Status
+			async function refreshStatus() {
+				try {
+					const res = await fetch("/api/status");
+					const data = await res.json();
+					gpuStatus.textContent = `GPU: ${
+						data.cuda_available ? "利用可" : "CPU"
+					}`;
+					gpuStatus.className = `chip ${
+						data.cuda_available ? "positive" : "warning"
+					}`;
+				} catch {
+					gpuStatus.textContent = "GPU: 不明";
+					gpuStatus.className = "chip warning";
+				}
+			}
+
+			function setBusy(busy, msg = "") {
+				runButton.disabled = busy;
+				runButton.textContent = busy ? "実行中..." : "OCR 実行";
+				if (msg) logEl.textContent = msg;
+			}
+
+			function resetResults(msg = "ファイルをアップロードして解析を開始") {
+				currentPayload = null;
+				summaryEl.innerHTML = "";
+				summaryEmpty.querySelector("span").textContent = msg;
+				summaryEmpty.style.display = "flex";
+				allTextCard.classList.remove("visible");
+				textAllEl.textContent = "";
+				pageTabsEl.innerHTML = "";
+				pagePanelsEl.innerHTML = "";
+				pageEmpty.querySelector("span").textContent = msg;
+				pageEmpty.style.display = "flex";
+			}
+
+			function truncate(text, len = 100) {
+				return text && text.length > len
+					? text.slice(0, len) + "…"
+					: text || "";
+			}
+
+			function computePageText(page, showTableTags = true) {
+				const exclude = page._removed || new Set();
+				return page.blocks
+					.filter((b) => !exclude.has(b.id) && b.text?.trim())
+					.map((b) =>
+						b.type === "table-cell" && showTableTags
+							? `[Table r${b.row} c${b.col}] ${b.text}`
+							: b.text
+					)
+					.join("\n");
+			}
+
+			function recomputePageText(page) {
+				const pre = document.getElementById(`text-page-${page.page}`);
+				if (pre)
+					pre.textContent =
+						computePageText(page, tableTagsInput.checked) ||
+						"テキスト抽出なし";
+			}
+
+			function recomputeAllText() {
+				if (!currentPayload) return;
+				const text = currentPayload.results
+					.map((p) => {
+						const t = computePageText(p, tableTagsInput.checked);
+						return t ? `--- Page ${p.page} ---\n${t}` : "";
+					})
+					.filter(Boolean)
+					.join("\n\n");
+				textAllEl.textContent = text || "テキスト抽出なし";
+			}
+
+			function renderBlockList(page) {
+				const container = document.getElementById(`blocks-${page.page}`);
+				if (!container) return;
+
+				container.innerHTML = page.blocks
+					.map(
+						(b) => `
+				<label class="block-item">
+					<input type="checkbox" data-block-id="${b.id}" />
+					<div>
+						<strong>${b.type}</strong>
+						<div class="block-meta">${truncate(b.text || "(テキストなし)", 80)}</div>
+					</div>
+				</label>
+			`
+					)
+					.join("");
+
+				container.addEventListener("change", (e) => {
+					const cb = e.target;
+					if (!cb.matches("[data-block-id]")) return;
+					page._removed = page._removed || new Set();
+					cb.checked
+						? page._removed.add(cb.dataset.blockId)
+						: page._removed.delete(cb.dataset.blockId);
+					recomputePageText(page);
+					recomputeAllText();
+				});
+			}
+
+			function renderResults(payload) {
+				if (!payload?.results?.length) {
+					resetResults("結果がありません。");
+					return;
+				}
+
+				currentPayload = payload;
+				summaryEmpty.style.display = "none";
+				pageEmpty.style.display = "none";
+				allTextCard.classList.add("visible");
+
+				summaryEl.innerHTML = [
+					`デバイス: ${payload.device}`,
+					`ONNX: ${payload.use_onnx ? "ON" : "OFF"}`,
+					`Pages: ${payload.page_count}`,
+					`改行: ${payload.collapse_line_breaks ? "削除" : "保持"}`,
+				]
+					.map((t) => `<span class="chip">${t}</span>`)
+					.join("");
+
+				pageTabsEl.innerHTML = payload.results
+					.map(
+						(p, i) =>
+							`<button class="tab${
+								i === 0 ? " active" : ""
+							}" data-target="panel-${p.page}">Page ${p.page}</button>`
+					)
+					.join("");
+
+				pagePanelsEl.innerHTML = payload.results
+					.map((p, i) => {
+						const previewItems = [];
+
+						if (p.ocr_preview) {
+							previewItems.push(`
+								<div class="preview-item">
+									<div class="preview-label">OCR Overlay</div>
+									<img src="data:image/jpeg;base64,${p.ocr_preview}" alt="OCR" />
+								</div>
+							`);
+						}
+
+						if (p.layout_preview) {
+							previewItems.push(`
+								<div class="preview-item">
+									<div class="preview-label">Layout Overlay</div>
+									<img src="data:image/jpeg;base64,${p.layout_preview}" alt="Layout" />
+								</div>
+							`);
+						}
+
+						if (p.html_preview) {
+							previewItems.push(`
+								<div class="preview-item">
+									<div class="preview-label" style="display: flex; justify-content: space-between; align-items: center;">
+										<span>HTML プレビュー</span>
+										<button type="button" class="chip-button open-html" data-page="${p.page}">
+											拡大
+										</button>
+									</div>
+									<div class="html-preview">${p.html_preview}</div>
+								</div>
+							`);
+						}
+
+						const previews = previewItems.length
+							? `<div class="preview-row">${previewItems.join("")}</div>`
+							: "";
+
+						return `
+					<div class="tab-panel${i === 0 ? " active" : ""}" id="panel-${p.page}">
+						<div class="result-card">
+							<h3>Page ${p.page}</h3>
+							<div class="badge-row">
+								<span class="chip">Paragraphs: ${p.summary.paragraphs}</span>
+								<span class="chip">Tables: ${p.summary.tables}</span>
+								<span class="chip">Figures: ${p.summary.figures}</span>
+								<span class="chip">Words: ${p.summary.words}</span>
+							</div>
+							<pre id="text-page-${p.page}">${p.text || "テキスト抽出なし"}</pre>
+							${previews}
+							<div class="block-section">
+								<div class="block-section-title">不要なブロックを除外してテキストを再生成</div>
+								<div class="block-list" id="blocks-${p.page}"></div>
+							</div>
+						</div>
+					</div>
+				`;
+					})
+					.join("");
+
+				payload.results.forEach((p) => {
+					p._removed = new Set();
+					p._html_preview = p.html_preview || "";
+					renderBlockList(p);
+					recomputePageText(p);
+				});
+
+				recomputeAllText();
+
+				// Tab switching
+				pageTabsEl.querySelectorAll(".tab").forEach((btn) => {
+					btn.addEventListener("click", () => {
+						pageTabsEl
+							.querySelectorAll(".tab")
+							.forEach((b) => b.classList.toggle("active", b === btn));
+						pagePanelsEl
+							.querySelectorAll(".tab-panel")
+							.forEach((p) =>
+								p.classList.toggle("active", p.id === btn.dataset.target)
+							);
+					});
+				});
+			}
+
+			// Lightbox
+			function openImageLightbox(src) {
+				if (!src) return;
+				lightboxImg.src = src;
+				lightboxImg.style.display = "block";
+				lightboxHtml.style.display = "none";
+				lightbox.classList.add("open");
+			}
+
+			function openHtmlLightbox(html) {
+				if (!html) return;
+				lightboxHtml.innerHTML = html;
+				lightboxHtml.style.display = "block";
+				lightboxImg.style.display = "none";
+				lightbox.classList.add("open");
+			}
+
+			function closeLightbox() {
+				lightbox.classList.remove("open");
+				lightboxImg.src = "";
+				lightboxHtml.innerHTML = "";
+			}
+
+			pagePanelsEl.addEventListener("click", (e) => {
+				const img = e.target.closest(".preview-row img");
+				if (img) {
+					openImageLightbox(img.src);
+					return;
+				}
+
+				const htmlBtn = e.target.closest(".open-html");
+				if (htmlBtn && currentPayload) {
+					const page = currentPayload.results.find(
+						(p) => String(p.page) === htmlBtn.dataset.page
+					);
+					if (page?._html_preview) openHtmlLightbox(page._html_preview);
+				}
+			});
+
+			lightbox.addEventListener("click", (e) => {
+				if (e.target === lightbox) closeLightbox();
+			});
+			document.addEventListener(
+				"keydown",
+				(e) => e.key === "Escape" && closeLightbox()
+			);
+
+			// Drag & Drop
+			["dragenter", "dragover"].forEach((ev) =>
+				dropzone.addEventListener(ev, (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					dropzone.classList.add("dragover");
+				})
+			);
+			["dragleave", "drop"].forEach((ev) =>
+				dropzone.addEventListener(ev, (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					dropzone.classList.remove("dragover");
+				})
+			);
+
+			dropzone.addEventListener("drop", (e) => {
+				const files = e.dataTransfer?.files;
+				if (files?.length) {
+					fileInput.files = files;
+					logEl.textContent = files[0].name;
+				}
+			});
+
+			dropzone.addEventListener("click", () => fileInput.click());
+			fileInput.addEventListener("change", () => {
+				if (fileInput.files.length) logEl.textContent = fileInput.files[0].name;
+			});
+
+			// Toggle table cell tags
+			tableTagsInput.addEventListener("change", () => {
+				if (!currentPayload) return;
+				currentPayload.results.forEach(recomputePageText);
+				recomputeAllText();
+			});
+
+			// Submit
+			form.addEventListener("submit", async (e) => {
+				e.preventDefault();
+				if (!fileInput.files.length)
+					return alert("ファイルを選択してください。");
+
+				const fd = new FormData();
+				fd.append("file", fileInput.files[0]);
+				fd.append("device", "auto");
+				fd.append("use_onnx", false);
+				fd.append("visualize", document.getElementById("visualize").checked);
+				fd.append("collapse_line_breaks", collapseBreaksInput.checked);
+				fd.append("parallelism", 2);
+				fd.append("torch_threads", 8);
+				fd.append("dpi", 220);
+
+				setBusy(true, "処理中...");
+				resetResults("処理中です。少しお待ちください。");
+
+				try {
+					const res = await fetch("/api/analyze", { method: "POST", body: fd });
+					if (!res.ok)
+						throw new Error(
+							(await res.json().catch(() => ({}))).detail || "リクエスト失敗"
+						);
+					renderResults(await res.json());
+					setBusy(false, "完了");
+				} catch (err) {
+					resetResults(`エラー: ${err.message}`);
+					setBusy(false, "エラー");
+				}
+			});
+
+			// Init
+			resetResults();
+			refreshStatus();
+		</script>
+	</body>
+</html>

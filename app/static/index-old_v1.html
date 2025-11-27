@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>YomiToku OCR Control Room</title>
+		<style>
+			@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap");
+			:root {
+				--bg: #0b1224;
+				--panel: #111827;
+				--muted: #6b7280;
+				--accent: #10b981;
+				--accent-2: #38bdf8;
+				--text: #e5e7eb;
+				--border: #1f2937;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				padding: 0;
+				background: radial-gradient(
+						circle at 20% 20%,
+						rgba(56, 189, 248, 0.08),
+						transparent 30%
+					),
+					radial-gradient(
+						circle at 80% 0%,
+						rgba(16, 185, 129, 0.08),
+						transparent 25%
+					),
+					var(--bg);
+				font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system,
+					sans-serif;
+				color: var(--text);
+				min-height: 100vh;
+				height: 100vh;
+				overflow: hidden;
+			}
+
+			.shell {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				padding: 24px 24px 32px;
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+			}
+
+			.hero {
+				display: grid;
+				grid-template-columns: 1.3fr 1fr;
+				gap: 18px;
+				align-items: stretch;
+				margin-bottom: 4px;
+			}
+
+			@media (max-width: 960px) {
+				.hero {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.eyebrow {
+				text-transform: uppercase;
+				letter-spacing: 0.25em;
+				font-size: 12px;
+				color: var(--accent-2);
+				margin: 0 0 8px 0;
+			}
+
+			h1 {
+				margin: 0;
+				font-size: 30px;
+				letter-spacing: -0.02em;
+			}
+
+			.status-row {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
+
+			.chip {
+				padding: 6px 10px;
+				border-radius: 999px;
+				background: rgba(255, 255, 255, 0.05);
+				border: 1px solid var(--border);
+				font-size: 13px;
+				color: var(--text);
+			}
+
+			.chip.positive {
+				background: rgba(16, 185, 129, 0.12);
+				border-color: rgba(16, 185, 129, 0.4);
+				color: #a7f3d0;
+			}
+
+			.chip.warning {
+				background: rgba(248, 180, 0, 0.12);
+				border-color: rgba(248, 180, 0, 0.4);
+				color: #fde68a;
+			}
+
+			.grid {
+				display: grid;
+				grid-template-columns: 0.9fr 1.1fr;
+				gap: 18px;
+				align-items: stretch;
+				flex: 1;
+				min-height: 0;
+			}
+
+			.grid > .panel {
+				height: 100%;
+				min-height: 0;
+			}
+
+			@media (max-width: 1200px) {
+				.grid {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.panel {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				padding: 18px;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+				min-width: 0;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+			}
+
+			.scrollable {
+				overflow-y: auto;
+				min-height: 0;
+			}
+
+			.hero-card,
+			.action-card {
+				padding: 18px;
+			}
+
+			.hero-card {
+				background: none;
+				border: none;
+				box-shadow: none;
+				padding-left: 0;
+				padding-right: 0;
+			}
+
+			.action-card {
+				background: radial-gradient(
+						circle at 15% 20%,
+						rgba(56, 189, 248, 0.15),
+						transparent 45%
+					),
+					radial-gradient(
+						circle at 85% 0%,
+						rgba(16, 185, 129, 0.18),
+						transparent 40%
+					),
+					#0f172a;
+				border: 1px solid rgba(56, 189, 248, 0.35);
+				border-radius: 16px;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.15);
+				position: relative;
+				overflow: hidden;
+			}
+
+			.panel.all-panel .badge-row {
+				margin-bottom: 10px;
+			}
+
+			.panel.results-panel {
+				min-height: 240px;
+			}
+
+			.panel h2 {
+				margin: 0 0 12px 0;
+				font-size: 18px;
+			}
+
+			.field {
+				margin-bottom: 14px;
+			}
+
+			label {
+				display: block;
+				font-size: 14px;
+				color: var(--muted);
+				margin-bottom: 6px;
+			}
+
+			input,
+			select {
+				width: 100%;
+				padding: 10px 12px;
+				border-radius: 10px;
+				border: 1px solid var(--border);
+				background: #0f172a;
+				color: var(--text);
+				font-size: 15px;
+			}
+
+			input[type="checkbox"] {
+				width: auto;
+				transform: scale(1.1);
+				margin-right: 8px;
+			}
+
+			.inline {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				color: var(--text);
+			}
+
+			button {
+				width: 100%;
+				padding: 12px 14px;
+				background: linear-gradient(135deg, var(--accent), var(--accent-2));
+				color: #0b0f1a;
+				border: none;
+				border-radius: 12px;
+				font-weight: 700;
+				letter-spacing: 0.02em;
+				cursor: pointer;
+				transition: transform 0.1s ease, box-shadow 0.2s ease;
+				box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
+			}
+
+			button:hover {
+				transform: translateY(-1px);
+				box-shadow: 0 18px 40px rgba(56, 189, 248, 0.35);
+			}
+
+			button:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+				transform: none;
+				box-shadow: none;
+			}
+
+			.hint {
+				color: var(--muted);
+				font-size: 13px;
+				margin-top: 6px;
+				line-height: 1.5;
+			}
+
+			.results {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+
+			.result-card {
+				border: 1px solid var(--border);
+				border-radius: 14px;
+				padding: 14px;
+				background: #0e1629;
+			}
+
+			.result-card h3 {
+				margin: 0 0 8px 0;
+			}
+
+			.result-card pre {
+				background: #0b1221;
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 12px;
+				white-space: pre-wrap;
+				line-height: 1.5;
+				color: var(--text);
+				max-height: 280px;
+				overflow: auto;
+			}
+
+			.preview-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				margin-top: 10px;
+			}
+
+			.preview-row img {
+				border-radius: 10px;
+				border: 1px solid var(--border);
+				max-width: 48%;
+				width: 320px;
+				object-fit: cover;
+				background: #0b1221;
+				cursor: zoom-in;
+				transition: transform 0.15s ease, box-shadow 0.15s ease;
+			}
+
+			.preview-row img:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+			}
+
+			.block-list {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+				gap: 8px;
+				margin-top: 10px;
+			}
+
+			.block-item {
+				padding: 10px;
+				border-radius: 12px;
+				border: 1px solid var(--border);
+				background: #0c1628;
+				font-size: 13px;
+				display: flex;
+				gap: 10px;
+				align-items: flex-start;
+			}
+
+			.block-item input {
+				margin-top: 4px;
+			}
+
+			.block-meta {
+				color: var(--muted);
+				font-size: 12px;
+				margin-top: 4px;
+			}
+
+			.tabs {
+				display: flex;
+				gap: 8px;
+				margin: 8px 0 12px;
+				flex-wrap: nowrap;
+				overflow-x: auto;
+				padding-bottom: 6px;
+				scrollbar-width: thin;
+			}
+
+			.tab {
+				padding: 8px 12px;
+				border-radius: 10px;
+				border: 1px solid var(--border);
+				background: #0f172a;
+				color: var(--text);
+				cursor: pointer;
+				font-weight: 600;
+				white-space: nowrap;
+				flex: 0 0 auto;
+				width: auto;
+				min-width: 72px;
+				max-width: 140px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.tab.active {
+				background: linear-gradient(135deg, var(--accent), var(--accent-2));
+				color: #0b0f1a;
+				border-color: transparent;
+			}
+
+			.tab-panels {
+				position: relative;
+				overflow: hidden;
+			}
+
+			.tab-panel {
+				display: none;
+			}
+
+			.tab-panel.active {
+				display: block;
+			}
+
+			.badge-row {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				margin-bottom: 8px;
+			}
+
+			.muted {
+				color: var(--muted);
+			}
+
+			.log {
+				font-size: 13px;
+				color: var(--muted);
+				margin-top: 10px;
+				min-height: 18px;
+			}
+
+			.lightbox {
+				position: fixed;
+				inset: 0;
+				background: rgba(0, 0, 0, 0.75);
+				display: none;
+				align-items: center;
+				justify-content: center;
+				padding: 20px;
+				z-index: 50;
+			}
+
+			.lightbox.open {
+				display: flex;
+			}
+
+			.lightbox img {
+				max-width: 90vw;
+				max-height: 90vh;
+				border-radius: 12px;
+				border: 1px solid var(--border);
+				box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+				background: #0b1221;
+			}
+
+			.action-grid {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 12px;
+			}
+
+			.dropzone {
+				border: 1px dashed var(--border);
+				border-radius: 12px;
+				padding: 16px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+				color: var(--muted);
+				background: #0f172a;
+				cursor: pointer;
+				transition: border-color 0.15s ease, background 0.15s ease;
+			}
+
+			.dropzone.dragover {
+				border-color: var(--accent-2);
+				background: rgba(56, 189, 248, 0.08);
+				color: var(--text);
+			}
+
+			.inline-controls {
+				display: flex;
+				gap: 12px;
+				flex-wrap: wrap;
+				align-items: center;
+				padding: 6px 10px;
+				border: 1px solid rgba(255, 255, 255, 0.05);
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.02);
+			}
+
+			.inline-controls label {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin: 0;
+				color: var(--text);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="shell">
+			<div class="hero">
+				<div class="hero-card">
+					<p class="eyebrow">Yomitoku Control Room</p>
+					<h1>High-Precision OCR Server</h1>
+					<div class="status-row">
+						<span id="gpuStatus" class="chip">GPU: チェック中</span>
+						<span class="chip positive">LAN Ready</span>
+						<span class="chip">Parallel Control</span>
+					</div>
+				</div>
+				<div class="action-card">
+					<form id="controlForm" class="action-grid">
+						<div>
+							<h3 style="margin: 0 0 6px; font-size: 18px;">ファイルを投入</h3>
+							<p class="muted" style="margin: 0 0 10px; font-size: 14px;">
+								画像 / PDF を選択して実行。オプションは最低限に絞っています。
+							</p>
+						</div>
+						<label for="fileInput" class="dropzone" id="dropzone">
+							<span>画像 / PDF をドラッグ＆ドロップ、またはクリックして選択</span>
+							<input
+								id="fileInput"
+								type="file"
+								accept="image/*,.pdf"
+								required
+								style="display: none"
+							/>
+						</label>
+						<div class="inline-controls">
+							<label>
+								<input type="checkbox" id="visualize" checked />
+								<span>可視化を出力</span>
+							</label>
+							<label>
+								<input type="checkbox" id="collapseBreaks" />
+								<span>段落内改行を削除</span>
+							</label>
+						</div>
+						<button type="submit" id="runButton">OCR 実行</button>
+						<div class="log" id="log">準備完了</div>
+					</form>
+				</div>
+			</div>
+
+			<div class="grid">
+				<div class="panel all-panel scrollable">
+					<h2>All Pages</h2>
+					<div id="summaryEmpty" class="muted">
+						ファイルをアップロードして解析を開始してください。
+					</div>
+					<div id="summary" class="badge-row"></div>
+					<div class="result-card" id="allTextCard" style="display: none">
+						<h3>結合テキスト</h3>
+						<p class="muted" style="margin: 4px 0 8px;">
+							除外設定はページ別のチェック状態に連動します。
+						</p>
+						<pre id="text-all">未取得</pre>
+					</div>
+				</div>
+
+				<div class="panel results-panel scrollable">
+					<h2>ページ別</h2>
+					<div id="pageEmpty" class="muted">
+						ファイルをアップロードして解析を開始してください。
+					</div>
+					<div class="tabs" id="pageTabs"></div>
+					<div class="tab-panels" id="pagePanels"></div>
+				</div>
+			</div>
+
+			<div id="lightbox" class="lightbox" aria-hidden="true">
+				<img id="lightboxImg" alt="Preview" />
+			</div>
+		</div>
+
+		<script>
+			const form = document.getElementById("controlForm");
+			const logEl = document.getElementById("log");
+			const gpuStatus = document.getElementById("gpuStatus");
+			const runButton = document.getElementById("runButton");
+			const summaryEl = document.getElementById("summary");
+			const summaryEmpty = document.getElementById("summaryEmpty");
+			const allTextCard = document.getElementById("allTextCard");
+			const textAllEl = document.getElementById("text-all");
+			const pageTabsEl = document.getElementById("pageTabs");
+			const pagePanelsEl = document.getElementById("pagePanels");
+			const pageEmpty = document.getElementById("pageEmpty");
+			const collapseBreaksInput = document.getElementById("collapseBreaks");
+			const lightbox = document.getElementById("lightbox");
+			const lightboxImg = document.getElementById("lightboxImg");
+			const dropzone = document.getElementById("dropzone");
+			const fileInput = document.getElementById("fileInput");
+
+			async function refreshStatus() {
+				try {
+					const res = await fetch("/api/status");
+					const data = await res.json();
+					const gpu = data.cuda_available ? "利用可" : "CPU のみ";
+					gpuStatus.textContent = `GPU: ${gpu}`;
+					gpuStatus.className = `chip ${
+						data.cuda_available ? "positive" : "warning"
+					}`;
+				} catch (err) {
+					gpuStatus.textContent = "GPU: 不明";
+					gpuStatus.className = "chip warning";
+				}
+			}
+
+			function setBusy(isBusy, message = "") {
+				runButton.disabled = isBusy;
+				runButton.textContent = isBusy ? "実行中..." : "OCR 実行";
+				logEl.textContent = message;
+			}
+
+			function resetResults(message = "ファイルをアップロードして解析を開始してください。") {
+				currentPayload = null;
+				summaryEl.innerHTML = "";
+				summaryEmpty.textContent = message;
+				summaryEmpty.style.display = "block";
+				allTextCard.style.display = "none";
+				textAllEl.textContent = "";
+				pageTabsEl.innerHTML = "";
+				pagePanelsEl.innerHTML = "";
+				pageEmpty.textContent = message;
+				pageEmpty.style.display = "block";
+			}
+
+			let currentPayload = null;
+
+			function truncate(text, len = 120) {
+				if (!text) return "";
+				return text.length > len ? text.slice(0, len) + "…" : text;
+			}
+
+			function computePageText(page) {
+				const exclude = page._removed || new Set();
+				const lines = [];
+				page.blocks.forEach((block) => {
+					if (exclude.has(block.id)) return;
+					const txt = block.text || "";
+					if (!txt.trim()) return;
+					if (block.type === "table-cell") {
+						lines.push(`[Table r${block.row} c${block.col}] ${txt}`);
+					} else {
+						lines.push(txt);
+					}
+				});
+				return lines.join("\n");
+			}
+
+			function recomputePageText(page) {
+				const pre = document.getElementById(`text-page-${page.page}`);
+				const text = computePageText(page);
+				pre.textContent = text || "テキスト抽出なし";
+			}
+
+			function recomputeAllText() {
+				if (!currentPayload) return;
+				const lines = [];
+				currentPayload.results.forEach((page) => {
+					const text = computePageText(page);
+					if (text) {
+						lines.push(`--- Page ${page.page} ---`);
+						lines.push(text);
+					}
+				});
+				textAllEl.textContent = lines.join("\n\n") || "テキスト抽出なし";
+			}
+
+			function renderBlockList(page) {
+				const container = document.getElementById(`blocks-${page.page}`);
+				if (!container) return;
+				container.innerHTML = page.blocks
+					.map(
+						(block) => `
+              <label class="block-item">
+                <input type="checkbox" data-block-id="${block.id}" />
+                <div>
+                  <div><strong>${block.type}</strong></div>
+                  <div class="block-meta">${truncate(
+										block.text || "(テキストなし)",
+										140
+									)}</div>
+                </div>
+              </label>
+            `
+					)
+					.join("");
+
+				container.addEventListener("change", (event) => {
+					const target = event.target;
+					if (!target.matches("input[type='checkbox'][data-block-id]")) return;
+
+					const id = target.getAttribute("data-block-id");
+					page._removed = page._removed || new Set();
+					if (target.checked) {
+						page._removed.add(id);
+					} else {
+						page._removed.delete(id);
+					}
+					recomputePageText(page);
+					recomputeAllText();
+				});
+			}
+
+			function renderResults(payload) {
+				if (!payload || !payload.results || !payload.results.length) {
+					resetResults("結果がありません。");
+					return;
+				}
+
+				currentPayload = payload;
+
+				summaryEmpty.style.display = "none";
+				summaryEl.innerHTML = [
+					`デバイス: ${payload.device}`,
+					`ONNX: ${payload.use_onnx ? "ON" : "OFF"}`,
+					`Threads: ${payload.torch_threads}`,
+					`並列: ${payload.parallelism}`,
+					`Pages: ${payload.page_count}`,
+					`改行: ${payload.collapse_line_breaks ? "削除" : "保持"}`,
+				]
+					.map((text) => `<span class="chip">${text}</span>`)
+					.join("");
+
+				const tabs = payload.results
+					.map(
+						(page, idx) =>
+							`<button class="tab ${
+								idx === 0 ? "active" : ""
+							}" data-target="panel-${page.page}">Page ${page.page}</button>`
+					)
+					.join("");
+
+				const panels = payload.results
+					.map((page, idx) => {
+						const ocrImg = page.ocr_preview
+							? `<img src="data:image/jpeg;base64,${page.ocr_preview}" alt="OCR overlay" />`
+							: "";
+						const layoutImg = page.layout_preview
+							? `<img src="data:image/jpeg;base64,${page.layout_preview}" alt="Layout overlay" />`
+							: "";
+
+						return `
+              <div class="tab-panel ${idx === 0 ? "active" : ""}" id="panel-${
+							page.page
+						}">
+                <div class="result-card">
+                  <h3>Page ${page.page}</h3>
+                  <div class="badge-row">
+                    <span class="chip">Paragraphs: ${
+											page.summary.paragraphs
+										}</span>
+                    <span class="chip">Tables: ${page.summary.tables}</span>
+                    <span class="chip">Figures: ${page.summary.figures}</span>
+                    <span class="chip">Words: ${page.summary.words}</span>
+                  </div>
+                  <pre id="text-page-${page.page}">${
+							page.text || "テキスト抽出なし"
+						}</pre>
+                  <div class="preview-row">
+                    ${ocrImg}
+                    ${layoutImg}
+                  </div>
+                  <p class="muted" style="margin: 6px 0 4px;">不要なブロックを除外してテキストを再生成できます。</p>
+                  <div class="block-list" id="blocks-${page.page}"></div>
+                </div>
+              </div>
+            `;
+					})
+					.join("");
+
+				pageTabsEl.innerHTML = tabs;
+				pagePanelsEl.innerHTML = panels;
+				pageEmpty.style.display = "none";
+				allTextCard.style.display = "block";
+
+				// Bind block controls after insertion
+				payload.results.forEach((page) => {
+					page._removed = new Set();
+					renderBlockList(page);
+					recomputePageText(page);
+				});
+
+				recomputeAllText();
+
+				// Tab switching
+				const tabButtons = pageTabsEl.querySelectorAll(".tab");
+				const tabPanels = pagePanelsEl.querySelectorAll(".tab-panel");
+				const setActive = (targetId) => {
+					tabButtons.forEach((btn) => {
+						btn.classList.toggle(
+							"active",
+							btn.getAttribute("data-target") === targetId
+						);
+					});
+					tabPanels.forEach((panel) => {
+						panel.classList.toggle("active", panel.id === targetId);
+					});
+				};
+				tabButtons.forEach((btn) => {
+					btn.addEventListener("click", () =>
+						setActive(btn.getAttribute("data-target"))
+					);
+				});
+			}
+
+			function openLightbox(src) {
+				if (!src) return;
+				lightboxImg.src = src;
+				lightbox.classList.add("open");
+			}
+
+			function closeLightbox() {
+				lightbox.classList.remove("open");
+				lightboxImg.removeAttribute("src");
+			}
+
+			form.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				if (!fileInput.files.length) {
+					alert("ファイルを選択してください。");
+					return;
+				}
+
+				const formData = new FormData();
+				formData.append("file", fileInput.files[0]);
+				formData.append("device", "auto");
+				formData.append("use_onnx", false);
+				formData.append("visualize", document.getElementById("visualize").checked);
+				formData.append("collapse_line_breaks", collapseBreaksInput.checked);
+				formData.append("parallelism", 2);
+				formData.append("torch_threads", 8);
+				formData.append("dpi", 220);
+
+				setBusy(true, "推論ジョブを投入しています...");
+				resetResults("処理中です。少しお待ちください。");
+
+				try {
+					const res = await fetch("/api/analyze", {
+						method: "POST",
+						body: formData,
+					});
+
+					if (!res.ok) {
+						const err = await res.json().catch(() => ({}));
+						throw new Error(err.detail || "推論リクエストに失敗しました。");
+					}
+
+					const data = await res.json();
+					renderResults(data);
+					setBusy(false, "完了");
+				} catch (err) {
+					console.error(err);
+					resetResults(`エラー: ${err.message}`);
+					setBusy(false, "エラー");
+				}
+			});
+
+			pagePanelsEl.addEventListener("click", (event) => {
+				const img = event.target.closest(".preview-row img");
+				if (img) {
+					openLightbox(img.src);
+				}
+			});
+
+			lightbox.addEventListener("click", closeLightbox);
+			document.addEventListener("keydown", (event) => {
+				if (event.key === "Escape") {
+					closeLightbox();
+				}
+			});
+
+			["dragenter", "dragover"].forEach((evt) => {
+				dropzone.addEventListener(evt, (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					dropzone.classList.add("dragover");
+				});
+			});
+
+			["dragleave", "drop"].forEach((evt) => {
+				dropzone.addEventListener(evt, (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					dropzone.classList.remove("dragover");
+				});
+			});
+
+			dropzone.addEventListener("drop", (event) => {
+				const files = event.dataTransfer?.files;
+				if (files && files.length) {
+					fileInput.files = files;
+					logEl.textContent = `${files[0].name} を読み込みました。`;
+				}
+			});
+
+			dropzone.addEventListener("click", () => fileInput.click());
+			fileInput.addEventListener("change", () => {
+				if (fileInput.files.length) {
+					logEl.textContent = `${fileInput.files[0].name} を読み込みました。`;
+				}
+			});
+
+			resetResults();
+			refreshStatus();
+		</script>
+	</body>
+</html>
