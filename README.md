@@ -28,9 +28,9 @@ yomitoku path/to/image_or_dir -f md -o results -v --figure
 - 段落内改行を除去: `--ignore_line_break`
 
 ### Web UI / API サーバー（検証用）
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+- Windows: `run.bat` をダブルクリックまたは `.\run.bat`（仮想環境を自動作成・依存関係をインストールして FastAPI を起動）
+- 他環境: `uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
+
 ブラウザで `http://localhost:8000` を開くとコントロールパネルが使えます。設定は UI の「詳細設定」モーダルから変更できます。テスト環境向けのため、本番運用時は本家のガイドを参照し、推論リソースやモデル管理を適切に調整してください。
 
 ## 主な CLI オプション
